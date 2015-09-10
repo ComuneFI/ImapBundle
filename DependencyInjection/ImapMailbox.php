@@ -19,13 +19,13 @@ use Symfony\Component\Config\Definition\Exception\Exception;
   
     #Tipo casella office365:
     # Personale    
-        mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d59495@comune.fi.it}'
-        mailuser: 'd59495@comune.fi.it'
+        mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}'
+        mailuser: 'd99999@comune.fi.it'
         mailpassword: 'xxxxxxxx'
   
     #   Condivisa, dove l'account condiviso è imaptestoffice365
-    #   mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d59495@comune.fi.it/user=imaptestoffice365}'
-        mailuser: 'd59495@comune.fi.it'
+    #   mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it/user=imaptestoffice365}'
+        mailuser: 'd99999@comune.fi.it'
         mailpassword: 'xxxxxxxx'
     
  * 
