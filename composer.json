@@ -1,0 +1,27 @@
+{
+    "name": "fi/imapbundle",
+    "description": "Imap bundle per Fifree2",
+    "type": "symfony-bundle",
+    "authors": [{
+            "name": "Andrea Manzi",
+            "email": "andrea.manzi@comune.fi.it"
+        }],
+    "keywords": [
+        "fifree2 bundle imap"
+    ],
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "fi\\imapbundle\\": ""
+        }
+    },
+    "require": {
+        "php": ">=5.4.0",
+        "symfony/http-kernel": "~2.5"
+    },
+    "extra": {
+        "branch-alias": {
+            "master": "1.0.0"
+        }
+    }
+}

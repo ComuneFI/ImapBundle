@@ -1,0 +1,3 @@
+fi_imap_homepage:
+    path:     /hello/{name}
+    defaults: { _controller: FiImapBundle:Default:index }

@@ -1,0 +1,4 @@
+services:
+#    fi_imap.example:
+#        class: Fi\ImapBundle\Example
+#        arguments: [@service_id, "plain_value", %parameter%]
