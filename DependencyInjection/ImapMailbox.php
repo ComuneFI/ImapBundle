@@ -12,22 +12,22 @@ use Symfony\Component\Config\Definition\Exception\Exception;
 /*
  * Sintassi per parametri di office 365 e mailbox del comune
  * parameters:
-   #Tipo casella mailbox:    
-        mailbox: '{imap.comune.intranet:143/novalidate-cert}INBOX'
-        mailuser: 'imaptestlocale'
-        mailpassword: 'firenze1'
-  
-    #Tipo casella office365:
-    # Personale    
-        mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}'
-        mailuser: 'd99999@comune.fi.it'
-        mailpassword: 'xxxxxxxx'
-  
-    #   Condivisa, dove l'account condiviso è imaptestoffice365
-    #   mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it/user=imaptestoffice365}'
-        mailuser: 'd99999@comune.fi.it'
-        mailpassword: 'xxxxxxxx'
-    
+  #Tipo casella mailbox:
+  mailbox: '{imap.comune.intranet:143/novalidate-cert}INBOX'
+  mailuser: 'imaptestlocale'
+  mailpassword: 'firenze1'
+
+  #Tipo casella office365:
+  # Personale
+  mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}'
+  mailuser: 'd99999@comune.fi.it'
+  mailpassword: 'xxxxxxxx'
+
+  #   Condivisa, dove l'account condiviso è imaptestoffice365
+  #   mailbox: '{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it/user=imaptestoffice365}'
+  mailuser: 'd99999@comune.fi.it'
+  mailpassword: 'xxxxxxxx'
+
  * 
  * Esempio:
   // IMAP must be enabled in Google Mail Settings
@@ -53,11 +53,25 @@ class ImapMailbox {
     protected $password;
     protected $serverEncoding;
     protected $attachmentsDir;
+    protected $imapopenoptions;
 
-    public function __construct($imapPath, $login, $password, $serverEncoding = 'UTF-8') {
+    /**
+     * IMAP MailBox
+     * @param string $imapPath imap mailbox <br/>ex.
+     * <br/>Casella personale: {outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}INBOX
+     * <br/>Casella condivisa: {outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it/user=nomecasella}INBOX
+     * <br/>Casella mailbox: {imap.comune.intranet:143/novalidate-cert}INBOX
+  
+     * @param string $login imap username
+     * @param string $password imap password
+     * @param string $serverEncoding imap server encoding (default UTF-8)
+     * @param int $imapopenoptions imap open options (default OP_READONLY)
+     */
+    public function __construct($imapPath, $login, $password, $serverEncoding = 'UTF-8', $imapopenoptions = OP_READONLY /* OP_READONLY */) {
         $this->imapPath = $imapPath;
         $this->login = $login;
         $this->password = $password;
+        $this->imapopenoptions = $imapopenoptions;
         $this->serverEncoding = $serverEncoding;
     }
 
@@ -81,7 +95,7 @@ class ImapMailbox {
     }
 
     protected function initImapStream() {
-        $imapStream = imap_open($this->imapPath, $this->login, $this->password, OP_READONLY);
+        $imapStream = imap_open($this->imapPath, $this->login, $this->password, $this->imapopenoptions);
         ///user=imaptestoffice365@comune.fi.it
         //$imapStream = imap_open('{outlook.office365.com:993/imap/ssl/authuser=d59495@comune.fi.it}', $this->login, $this->password, OP_READONLY);
         if (!$imapStream) {
@@ -519,7 +533,7 @@ class ImapMailbox {
             }
         }
         $data = $newdata;
-        
+
         if (($tipoencoding == FALSE) or ( $tipoencoding == "") or ( !(isset($tipoencoding)))) {
             $tipoencoding = mb_detect_encoding($data, "auto", TRUE);
         }
