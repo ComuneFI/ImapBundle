@@ -52,7 +52,6 @@ class ImapMailbox {
     protected $login;
     protected $password;
     protected $serverEncoding;
-    protected $attachmentsDir;
     protected $imapopenoptions;
 
     /**
@@ -61,7 +60,7 @@ class ImapMailbox {
      * <br/>Casella personale: {outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}INBOX
      * <br/>Casella condivisa: {outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it/user=nomecasella}INBOX
      * <br/>Casella mailbox: {imap.comune.intranet:143/novalidate-cert}INBOX
-  
+
      * @param string $login imap username
      * @param string $password imap password
      * @param string $serverEncoding imap server encoding (default UTF-8)
@@ -492,6 +491,7 @@ class ImapMailbox {
             return NULL;
         }
     }
+    
 
     protected function initMailPart(IncomingMail $mail, $partStructure, $partNum) {
         $data = $partNum ? imap_fetchbody($this->getImapStream(), $mail->id, $partNum, FT_UID) : imap_body($this->getImapStream(), $mail->id, FT_UID);
@@ -504,6 +504,7 @@ class ImapMailbox {
         } elseif ($partStructure->encoding == 4) {
             $data = imap_qprint($data);
         }
+        $attachmentdata = $data;
         $params = array();
         if (!empty($partStructure->parameters)) {
             foreach ($partStructure->parameters as $param) {
@@ -564,21 +565,9 @@ class ImapMailbox {
             $attachment = new IncomingMailAttachment();
             $attachment->id = $attachmentId;
             $attachment->name = $fileName;
-            if ($this->attachmentsDir) {
-                $replace = array(
-                    '/\s/' => '_',
-                    '/[^0-9a-zA-Z_\.]/' => '',
-                    '/_+/' => '_',
-                    '/(^_)|(_$)/' => '',
-                );
-                $fileSysName = preg_replace('~[\\\\/]~', '', $mail->id . '_' . $attachmentId . '_' . preg_replace(array_keys($replace), $replace, $fileName));
-                $attachment->filePath = $this->attachmentsDir . DIRECTORY_SEPARATOR . $fileSysName;
-                file_put_contents($attachment->filePath, $data);
-            }
+            $attachment->contents = $attachmentdata;
             $mail->addAttachment($attachment);
         } elseif ($partStructure->type == 0 && $data) {
-
-
             if (strtolower($partStructure->subtype) == 'plain') {
                 $mail->textPlain .= $data;
             } else {
@@ -704,10 +693,14 @@ class IncomingMail {
      * Get array of internal HTML links placeholders
      * @return array attachmentId => link placeholder
      */
-    public function getInternalLinksPlaceholders() {
+    /*
+     
+       public function getInternalLinksPlaceholders() {
         return preg_match_all('/=["\'](ci?d:(\w+))["\']/i', $this->textHtml, $matches) ? array_combine($matches[2], $matches[1]) : array();
     }
-
+      
+    ******* Se dovesse servire questa funzione ricordarsi che non esiste più "filePath" *******
+      
     public function replaceInternalLinks($baseUri) {
         $baseUri = rtrim($baseUri, '\\/') . '/';
         $fetchedHtml = $this->textHtml;
@@ -715,15 +708,15 @@ class IncomingMail {
             $fetchedHtml = str_replace($placeholder, $baseUri . basename($this->attachments[$attachmentId]->filePath), $fetchedHtml);
         }
         return $fetchedHtml;
-    }
+    }*/
 
 }
 
 class IncomingMailAttachment {
-
+    
     public $id;
     public $name;
-    public $filePath;
+    public $contents;
 
 }
 
