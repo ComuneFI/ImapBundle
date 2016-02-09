@@ -66,7 +66,7 @@ class ImapMailbox {
      * @param string $serverEncoding imap server encoding (default UTF-8)
      * @param int $imapopenoptions imap open options (default OP_READONLY)
      */
-    public function __construct($imapPath, $login, $password, $serverEncoding = 'UTF-8', $imapopenoptions = OP_READONLY /* OP_READONLY */) {
+    public function __construct($imapPath, $login, $password, $serverEncoding = 'UTF-8', $imapopenoptions = 'OP_READONLY' /* OP_READONLY */) {
         $this->imapPath = $imapPath;
         $this->login = $login;
         $this->password = $password;
@@ -94,7 +94,7 @@ class ImapMailbox {
     }
 
     protected function initImapStream() {
-        $imapStream = imap_open($this->imapPath, $this->login, $this->password, $this->imapopenoptions);
+        $imapStream = imap_open($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions));
         ///user=imaptestoffice365@comune.fi.it
         //$imapStream = imap_open('{outlook.office365.com:993/imap/ssl/authuser=d59495@comune.fi.it}', $this->login, $this->password, OP_READONLY);
         if (!$imapStream) {
