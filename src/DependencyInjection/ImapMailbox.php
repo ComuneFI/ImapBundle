@@ -91,8 +91,8 @@ class ImapMailbox
     protected function initImapStream()
     {
         $imapStream = imap_open($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions));
-        //user=nomecasellaoffice365@comune.fi.it
-        //$imapStream = imap_open('{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}', $this->login, $this->password, OP_READONLY);
+//user=nomecasellaoffice365@comune.fi.it
+//$imapStream = imap_open('{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}', $this->login, $this->password, OP_READONLY);
         if (!$imapStream) {
             throw new ImapMailboxException('Connection error: '.imap_last_error());
         }
@@ -475,84 +475,127 @@ class ImapMailbox
      */
     public function getMail($mailId)
     {
-        $parseok = true;
-        try {
-            $head = imap_rfc822_parse_headers(imap_fetchheader($this->getImapStream(), $mailId, FT_UID));
-        } catch (Exception $exc) {
-            $parseok = false;
-            echo $exc->getTraceAsString();
-        }
-        if ($parseok === true) {
-            $errs = imap_errors();
-            if ($errs === false) {
-                $parseok = true;
-            } else {
-                $parseok = false;
-            }
-        }
-        if ($parseok === true) {
-            $mail = new IncomingMail();
-            $mail->id = $mailId;
-            $mail->date = date('Y-m-d H:i:s', isset($head->date) ? strtotime($head->date) : time());
-            $mail->subject = isset($head->subject) ? $this->decodeMimeStr($head->subject, $this->serverEncoding) : null;
-            $mail->fromName = isset($head->from[0]->personal) ? $this->decodeMimeStr($head->from[0]->personal, $this->serverEncoding) : null;
-            $mail->fromAddress = strtolower($head->from[0]->mailbox.'@'.$head->from[0]->host);
-            if (isset($head->to)) {
-                $toStrings = array();
-                foreach ($head->to as $to) {
-                    if (!empty($to->mailbox) && !empty($to->host)) {
-                        $toEmail = strtolower($to->mailbox.'@'.$to->host);
-                        $toName = isset($to->personal) ? $this->decodeMimeStr($to->personal, $this->serverEncoding) : null;
-                        $toStrings[] = $toName ? "$toName <$toEmail>" : $toEmail;
-                        $mail->to[$toEmail] = $toName;
-                    }
-                }
-                $mail->toString = implode(', ', $toStrings);
-            }
-            if (isset($head->cc)) {
-                foreach ($head->cc as $cc) {
-                    $mail->cc[strtolower($cc->mailbox.'@'.$cc->host)] = isset($cc->personal) ? $this->decodeMimeStr($cc->personal, $this->serverEncoding) : null;
-                }
-            }
-            if (isset($head->reply_to)) {
-                foreach ($head->reply_to as $replyTo) {
-                    $mail->replyTo[strtolower($replyTo->mailbox.'@'.$replyTo->host)] = isset($replyTo->personal) ? $this->decodeMimeStr($replyTo->personal, $this->serverEncoding) : null;
-                }
-            }
-            $mailStructure = imap_fetchstructure($this->getImapStream(), $mailId, FT_UID);
-            $errs = imap_errors();
-            if ($errs === false) {
-                if (empty($mailStructure->parts)) {
-                    $this->initMailPart($mail, $mailStructure, 0);
-                } else {
-                    foreach ($mailStructure->parts as $partNum => $partStructure) {
-                        $this->initMailPart($mail, $partStructure, $partNum + 1);
-                    }
-                }
-
-                return $mail;
-            } else {
-                return null;
-            }
+        $head = imap_rfc822_parse_headers(imap_fetchheader($this->getImapStream(), $mailId, FT_UID));
+        $errs = imap_errors();
+        $mail = new IncomingMail();
+        if ($errs) {
+            $mail->id = -1;
+            $mail->textPlain = $errs;
         } else {
-            return null;
+            $mail->id = $mailId;
+            $mail->date = $this->getMessageDate($head);
+            $mail->subject = $this->getMessageSubject($head);
+            $mail->fromName = $this->getMessageFromName($head);
+            $mail->fromAddress = $this->getMessageFromAddress($head);
+            $this->getMessageTo($head, $mail);
+            $this->getMessageCc($head, $mail);
+            $this->getMessageReplayTo($head, $mail);
+            $this->getMessageContent($mailId, $head, $mail);
+        }
+
+        return $mail;
+    }
+
+    private function getMessageDate($head)
+    {
+        return date('Y-m-d H:i:s', isset($head->date) ? strtotime($head->date) : time());
+    }
+
+    private function getMessageFromName($head)
+    {
+        return isset($head->from[0]->personal) ? $this->decodeMimeStr($head->from[0]->personal, $this->serverEncoding) : null;
+    }
+
+    private function getMessageFromAddress($head)
+    {
+        return strtolower($head->from[0]->mailbox.'@'.$head->from[0]->host);
+    }
+
+    private function getMessageSubject($head)
+    {
+        return isset($head->subject) ? $this->decodeMimeStr($head->subject, $this->serverEncoding) : null;
+    }
+
+    private function getMessageCc($head, &$mail)
+    {
+        if (isset($head->cc)) {
+            foreach ($head->cc as $cc) {
+                $mail->cc[strtolower($cc->mailbox.'@'.$cc->host)] = isset($cc->personal) ? $this->decodeMimeStr($cc->personal, $this->serverEncoding) : null;
+            }
+        }
+    }
+
+    private function getMessageContent($mailId, $head, &$mail)
+    {
+        $mailStructure = imap_fetchstructure($this->getImapStream(), $mailId, FT_UID);
+
+        $errs = imap_errors();
+        if ($errs === false) {
+            if (empty($mailStructure->parts)) {
+                $this->initMailPart($mail, $mailStructure, 0);
+            } else {
+                foreach ($mailStructure->parts as $partNum => $partStructure) {
+                    $this->initMailPart($mail, $partStructure, $partNum + 1);
+                }
+            }
+        }
+    }
+
+    private function getMessageTo($head, &$mail)
+    {
+        if (isset($head->to)) {
+            $toStrings = array();
+            foreach ($head->to as $to) {
+                if (!empty($to->mailbox) && !empty($to->host)) {
+                    $toEmail = strtolower($to->mailbox.'@'.$to->host);
+                    $toName = isset($to->personal) ? $this->decodeMimeStr($to->personal, $this->serverEncoding) : null;
+                    $toStrings[] = $toName ? "$toName <$toEmail>" : $toEmail;
+                    $mail->to[$toEmail] = $toName;
+                }
+            }
+            $mail->toString = implode(', ', $toStrings);
+        }
+    }
+
+    private function getMessageReplayTo($head, &$mail)
+    {
+        if (isset($head->reply_to)) {
+            foreach ($head->reply_to as $replyTo) {
+                $mail->replyTo[strtolower($replyTo->mailbox.'@'.$replyTo->host)] = isset($replyTo->personal) ? $this->decodeMimeStr($replyTo->personal, $this->serverEncoding) : null;
+            }
         }
     }
 
     protected function initMailPart(IncomingMail $mail, $partStructure, $partNum)
     {
         $data = $partNum ? imap_fetchbody($this->getImapStream(), $mail->id, $partNum, FT_UID) : imap_body($this->getImapStream(), $mail->id, FT_UID);
-        if ($partStructure->encoding == 1) {
-            $data = imap_utf8($data);
-        } elseif ($partStructure->encoding == 2) {
-            $data = imap_binary($data);
-        } elseif ($partStructure->encoding == 3) {
-            $data = imap_base64($data);
-        } elseif ($partStructure->encoding == 4) {
-            $data = imap_qprint($data);
+
+        switch ($partStructure->encoding) {
+            case 1:
+                $data = imap_utf8($data);
+                break;
+            case 2:
+                $data = imap_binary($data);
+                break;
+            case 3:
+                $data = imap_base64($data);
+                break;
+            case 4:
+                $data = imap_qprint($data);
+                break;
         }
-        $attachmentdata = $data;
+
         $params = array();
+        $this->setMessageParameters($params, $partStructure);
+        $attachmentdata = $data;
+
+        $this->setMessageEncoding($data);
+
+        $this->setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum);
+    }
+
+    private function setMessageParameters(&$params, $partStructure)
+    {
         if (!empty($partStructure->parameters)) {
             foreach ($partStructure->parameters as $param) {
                 $params[strtolower($param->attribute)] = $param->value;
@@ -568,6 +611,10 @@ class ImapMailbox
                 }
             }
         }
+    }
+
+    private function setMessageEncoding(&$data)
+    {
         $tipoencoding = mb_detect_encoding($data, 'auto', true);
         ini_set('mbstring.substitute_character', 'none');
         if (($tipoencoding == false) or ($tipoencoding == '') or (!(isset($tipoencoding)))) {
@@ -598,7 +645,10 @@ class ImapMailbox
                 $data = $convdata;
             }
         }
+    }
 
+    private function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum)
+    {
         // attachments
         $attachmentId = $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
         if ($attachmentId) {
@@ -644,35 +694,35 @@ class ImapMailbox
      *
      * @return string
      */
-    //function valid_utf8_bytes($str) {
-    //    $return = '';
-    //    $length = strlen($str);
-    //    $invalid = array_flip(array("\xEF\xBF\xBF" /* U-FFFF */, "\xEF\xBF\xBE" /* U-FFFE */));
-    //    for ($i = 0; $i < $length; $i++) {
-    //        $c = ord($str[$o = $i]);
-    //        if ($c < 0x80)
-    //            $n = 0;# 0bbbbbbb
-    //        elseif (($c & 0xE0) === 0xC0)
-    //            $n = 1;# 110bbbbb
-    //        elseif (($c & 0xF0) === 0xE0)
-    //            $n = 2;# 1110bbbb
-    //        elseif (($c & 0xF8) === 0xF0)
-    //            $n = 3;# 11110bbb
-    //        elseif (($c & 0xFC) === 0xF8)
-    //            $n = 4;# 111110bb
-    //        else
-    //            continue;# Does not match
-    //        for ($j = ++$n; --$j;) # n bytes matching 10bbbbbb follow ?
-    //            if (( ++$i === $length) || ((ord($str[$i]) & 0xC0) != 0x80))
-    //                continue 2
-    //                ;
-    //        $match = substr($str, $o, $n);
-    //        if ($n === 3 && isset($invalid[$match])) # test invalid sequences
-    //            continue;
-    //        $return .= $match;
-    //    }
-    //    return $return;
-    //}
+//function valid_utf8_bytes($str) {
+//    $return = '';
+//    $length = strlen($str);
+//    $invalid = array_flip(array("\xEF\xBF\xBF" /* U-FFFF */, "\xEF\xBF\xBE" /* U-FFFE */));
+//    for ($i = 0; $i < $length; $i++) {
+//        $c = ord($str[$o = $i]);
+//        if ($c < 0x80)
+//            $n = 0;# 0bbbbbbb
+//        elseif (($c & 0xE0) === 0xC0)
+//            $n = 1;# 110bbbbb
+//        elseif (($c & 0xF0) === 0xE0)
+//            $n = 2;# 1110bbbb
+//        elseif (($c & 0xF8) === 0xF0)
+//            $n = 3;# 11110bbb
+//        elseif (($c & 0xFC) === 0xF8)
+//            $n = 4;# 111110bb
+//        else
+//            continue;# Does not match
+//        for ($j = ++$n; --$j;) # n bytes matching 10bbbbbb follow ?
+//            if (( ++$i === $length) || ((ord($str[$i]) & 0xC0) != 0x80))
+//                continue 2
+//                ;
+//        $match = substr($str, $o, $n);
+//        if ($n === 3 && isset($invalid[$match])) # test invalid sequences
+//            continue;
+//        $return .= $match;
+//    }
+//    return $return;
+//}
 
     protected function decodeMimeStr($string, $charset = 'utf-8')
     {

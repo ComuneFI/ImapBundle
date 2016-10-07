@@ -3,24 +3,27 @@
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Fi\ImapBundle\DependencyInjection\ImapMailbox;
 
-class FiImapTest extends KernelTestCase {
-
+class FiImapTest extends KernelTestCase
+{
     private $container;
 
-    public function setUp() {
+    public function setUp()
+    {
         self::bootKernel();
 
         $this->container = self::$kernel->getContainer();
     }
 
-    public function getContainer() {
+    public function getContainer()
+    {
         return $this->container;
     }
 
-    public function testLdap() {
-        $indirizzomail = $this->getContainer()->getParameter("imapconnectionstring");
-        $utentemail = $this->getContainer()->getParameter("imapusername");
-        $passwordmail = $this->getContainer()->getParameter("imappassword");
+    public function testLdap()
+    {
+        $indirizzomail = $this->getContainer()->getParameter('imapconnectionstring');
+        $utentemail = $this->getContainer()->getParameter('imapusername');
+        $passwordmail = $this->getContainer()->getParameter('imappassword');
 
         $mailbox = new ImapMailbox($indirizzomail, $utentemail, $passwordmail, 'UTF-8');
 
@@ -41,26 +44,27 @@ class FiImapTest extends KernelTestCase {
                         $ok = false;
                     }
                 } catch (Exception $ex) {
-                    $arraymessaggi[$mailId] = "** Messaggio con caratteri errati - MailId $mailId ** Eccezione " . $ex->getTraceAsString();
+                    $arraymessaggi[$mailId] = "** Messaggio con caratteri errati - MailId $mailId ** Eccezione ".$ex->getTraceAsString();
                     $ok = false;
                 }
                 if ($ok === true) {
                     $arraymessaggi[$mailId]['id'] = $mail->id;
                     $arraymessaggi[$mailId]['subject'] = $mail->subject;
                     $arraymessaggi[$mailId]['bodytext'] = trim($mail->textPlain);
-                    //$arraymessaggi[$mailId]["bodyhtml"] = trim($mail->textHtml);
+                    $arraymessaggi[$mailId]['bodyhtml'] = trim($mail->textHtml);
                     $arraymessaggi[$mailId]['fromname'] = $mail->fromName;
                     $arraymessaggi[$mailId]['fromaddress'] = $mail->fromAddress;
                     $arraymessaggi[$mailId]['date'] = \DateTime::createFromFormat('Y-m-d H:i:s', $mail->date);
                     $arraymessaggi[$mailId]['replyto'] = $mail->replyTo;
                     $arraymessaggi[$mailId]['cc'] = $mail->cc;
                     $arraymessaggi[$mailId]['to'] = $mail->to;
+                    $arraymessaggi[$mailId]['attachments'] = $mail->getAttachments();
                 }
             }
-
             // assert that your calculator added the numbers correctly!
-            $this->assertGreaterThanOrEqual(0, $arraymessaggi);
+            var_dump($arraymessaggi[66]);
+            exit;
+            $this->assertGreaterThanOrEqual(65, count($arraymessaggi));
         }
     }
-
 }
