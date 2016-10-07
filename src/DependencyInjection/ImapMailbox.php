@@ -652,18 +652,7 @@ class ImapMailbox
         // attachments
         $attachmentId = $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
         if ($attachmentId) {
-            if (empty($params['filename']) && empty($params['name'])) {
-                $fileName = $attachmentId.'.'.strtolower($partStructure->subtype);
-            } else {
-                $fileName = !empty($params['filename']) ? $params['filename'] : $params['name'];
-                $fileName = $this->decodeMimeStr($fileName, $this->serverEncoding);
-                $fileName = $this->decodeRFC2231($fileName, $this->serverEncoding);
-            }
-            $attachment = new IncomingMailAttachment();
-            $attachment->id = $attachmentId;
-            $attachment->name = $fileName;
-            $attachment->contents = $attachmentdata;
-            $mail->addAttachment($attachment);
+            $this->buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail);
         } elseif ($partStructure->type == 0 && $data) {
             if (strtolower($partStructure->subtype) == 'plain') {
                 $mail->textPlain .= $data;
@@ -682,6 +671,22 @@ class ImapMailbox
                 }
             }
         }
+    }
+
+    private function buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, &$mail)
+    {
+        if (empty($params['filename']) && empty($params['name'])) {
+            $fileName = $attachmentId.'.'.strtolower($partStructure->subtype);
+        } else {
+            $fileName = !empty($params['filename']) ? $params['filename'] : $params['name'];
+            $fileName = $this->decodeMimeStr($fileName, $this->serverEncoding);
+            $fileName = $this->decodeRFC2231($fileName, $this->serverEncoding);
+        }
+        $attachment = new IncomingMailAttachment();
+        $attachment->id = $attachmentId;
+        $attachment->name = $fileName;
+        $attachment->contents = $attachmentdata;
+        $mail->addAttachment($attachment);
     }
 
     /**
