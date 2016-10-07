@@ -1,22 +1,22 @@
 # Cache and logs (Symfony2)
-/app/cache/*
-/app/logs/*
+/src/Tests/app/cache/*
+/src/Tests/app/logs/*
 !app/cache/.gitkeep
 !app/logs/.gitkeep
 
-/app/dbtest.sqlite
-/app/SymfonyRequirements.php
-/app/check.php
+/src/Tests/app/dbtest.sqlite
+/src/Tests/app/SymfonyRequirements.php
+/src/Tests/app/check.php
 
 # Parameters
-/app/config/parameters.yml
-/app/config/parameters.ini
+/src/Tests/app/config/parameters.yml
+/src/Tests/app/config/parameters.ini
 
 !.gitignore
 /nbproject/private/
 
 # Managed by Composer
-/app/bootstrap.php.cache
+/src/Tests/app/bootstrap.php.cache
 /var/bootstrap.php.cache
 /bin/*
 !bin/console
