@@ -2,8 +2,6 @@
 
 namespace Fi\ImapBundle\DependencyInjection;
 
-use Symfony\Component\Config\Definition\Exception\Exception;
-
 /**
  * @see https://github.com/barbushin/php-imap
  *
@@ -483,15 +481,14 @@ class ImapMailbox
             $mail->textPlain = $errs;
         } else {
             $mail->id = $mailId;
-            $mailboxutil = new ImapMailboxUtils($this->serverEncoding);
 
-            $mail->date = $mailboxutil->getMessageDate($head);
-            $mail->subject = $mailboxutil->getMessageSubject($head);
-            $mail->fromName = $mailboxutil->getMessageFromName($head);
-            $mail->fromAddress = $mailboxutil->getMessageFromAddress($head);
-            $mailboxutil->getMessageTo($head, $mail);
-            $mailboxutil->getMessageCc($head, $mail);
-            $mailboxutil->getMessageReplayTo($head, $mail);
+            $mail->date = ImapMailboxDetails::getMessageDate($head);
+            $mail->subject = ImapMailboxDetails::getMessageSubject($head, $this->serverEncoding);
+            $mail->fromName = ImapMailboxDetails::getMessageFromName($head, $this->serverEncoding);
+            $mail->fromAddress = ImapMailboxDetails::getMessageFromAddress($head);
+            ImapMailboxDetails::getMessageTo($head, $mail, $this->serverEncoding);
+            ImapMailboxDetails::getMessageCc($head, $mail, $this->serverEncoding);
+            ImapMailboxDetails::getMessageReplayTo($head, $mail, $this->serverEncoding);
 
             $this->getMessageContent($mailId, $head, $mail);
         }
@@ -546,11 +543,11 @@ class ImapMailbox
     private function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum)
     {
         // attachments
-        $attachmentId = ImapMailboxUtils::getAttachmentId($params, $partStructure);
+        $attachmentId = ImapMailboxDetails::getAttachmentId($params, $partStructure);
         if ($attachmentId) {
             $this->buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail);
         } elseif ($partStructure->type == 0 && $data) {
-            ImapMailboxUtils::getMailBody($partStructure, $mail, $data);
+            ImapMailboxDetails::getMailBody($partStructure, $mail, $data);
         } elseif ($partStructure->type == 2 && $data) {
             $mail->textPlain .= trim($data);
         }
@@ -631,67 +628,4 @@ class ImapMailbox
     {
         $this->disconnect();
     }
-}
-
-class IncomingMail
-{
-    public $id;
-    public $date;
-    public $subject;
-    public $fromName;
-    public $fromAddress;
-    public $to = array();
-    public $toString;
-    public $cc = array();
-    public $replyTo = array();
-    public $textPlain;
-    public $textHtml;
-
-    /** @var IncomingMailAttachment[] */
-    protected $attachments = array();
-
-    public function addAttachment(IncomingMailAttachment $attachment)
-    {
-        $this->attachments[$attachment->id] = $attachment;
-    }
-
-    /**
-     * @return IncomingMailAttachment[]
-     */
-    public function getAttachments()
-    {
-        return $this->attachments;
-    }
-
-    /*
-     * Get array of internal HTML links placeholders
-     * @return array attachmentId => link placeholder
-     */
-    /*
-
-      public function getInternalLinksPlaceholders() {
-      return preg_match_all('/=["\'](ci?d:(\w+))["\']/i', $this->textHtml, $matches) ? array_combine($matches[2], $matches[1]) : array();
-      }
-
-     * ****** Se dovesse servire questa funzione ricordarsi che non esiste più "filePath" *******
-
-      public function replaceInternalLinks($baseUri) {
-      $baseUri = rtrim($baseUri, '\\/') . '/';
-      $fetchedHtml = $this->textHtml;
-      foreach ($this->getInternalLinksPlaceholders() as $attachmentId => $placeholder) {
-      $fetchedHtml = str_replace($placeholder, $baseUri . basename($this->attachments[$attachmentId]->filePath), $fetchedHtml);
-      }
-      return $fetchedHtml;
-      } */
-}
-
-class IncomingMailAttachment
-{
-    public $id;
-    public $name;
-    public $contents;
-}
-
-class ImapMailboxException extends Exception
-{
 }

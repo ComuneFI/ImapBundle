@@ -11,60 +11,6 @@ class ImapMailboxUtils
         $this->serverEncoding = $serverEncoding;
     }
 
-    public function getMessageDate($head)
-    {
-        return date('Y-m-d H:i:s', isset($head->date) ? strtotime($head->date) : time());
-    }
-
-    public function getMessageFromAddress($head)
-    {
-        return strtolower($head->from[0]->mailbox.'@'.$head->from[0]->host);
-    }
-
-    public function getMessageFromName($head)
-    {
-        return isset($head->from[0]->personal) ? self::decodeMimeStr($head->from[0]->personal, $this->serverEncoding) : null;
-    }
-
-    public function getMessageSubject($head)
-    {
-        return isset($head->subject) ? self::decodeMimeStr($head->subject, $this->serverEncoding) : null;
-    }
-
-    public function getMessageCc($head, &$mail)
-    {
-        if (isset($head->cc)) {
-            foreach ($head->cc as $cc) {
-                $mail->cc[strtolower($cc->mailbox.'@'.$cc->host)] = isset($cc->personal) ? self::decodeMimeStr($cc->personal, $this->serverEncoding) : null;
-            }
-        }
-    }
-
-    public function getMessageTo($head, &$mail)
-    {
-        if (isset($head->to)) {
-            $toStrings = array();
-            foreach ($head->to as $to) {
-                if (!empty($to->mailbox) && !empty($to->host)) {
-                    $toEmail = strtolower($to->mailbox.'@'.$to->host);
-                    $toName = isset($to->personal) ? self::decodeMimeStr($to->personal, $this->serverEncoding) : null;
-                    $toStrings[] = $toName ? "$toName <$toEmail>" : $toEmail;
-                    $mail->to[$toEmail] = $toName;
-                }
-            }
-            $mail->toString = implode(', ', $toStrings);
-        }
-    }
-
-    public function getMessageReplayTo($head, &$mail)
-    {
-        if (isset($head->reply_to)) {
-            foreach ($head->reply_to as $replyTo) {
-                $mail->replyTo[strtolower($replyTo->mailbox.'@'.$replyTo->host)] = isset($replyTo->personal) ? self::decodeMimeStr($replyTo->personal, $this->serverEncoding) : null;
-            }
-        }
-    }
-
     public static function setMessageParameters(&$params, $partStructure)
     {
         if (!empty($partStructure->parameters)) {
@@ -90,20 +36,6 @@ class ImapMailboxUtils
         $hasEscapedChars = preg_match('#%[a-zA-Z0-9]{2}#', $string);
 
         return !$hasInvalidChars && $hasEscapedChars;
-    }
-
-    public static function getMailBody($partStructure, &$mail, $data)
-    {
-        if (strtolower($partStructure->subtype) == 'plain') {
-            $mail->textPlain .= $data;
-        } else {
-            $mail->textHtml .= $data;
-        }
-    }
-
-    public static function getAttachmentId($params, $partStructure)
-    {
-        return $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
     }
 
     public static function decodeRFC2231($string, $charset = 'utf-8')
