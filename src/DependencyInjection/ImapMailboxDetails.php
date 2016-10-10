@@ -67,6 +67,19 @@ class ImapMailboxDetails
         }
     }
 
+    public static function setMaildetail(&$mail, $serverEncoding)
+    {
+        if (isset($mail->subject)) {
+            $mail->subject = ImapMailboxUtils::decodeMimeStr($mail->subject, $serverEncoding);
+        }
+        if (isset($mail->from)) {
+            $mail->from = ImapMailboxUtils::decodeMimeStr($mail->from, $serverEncoding);
+        }
+        if (isset($mail->to)) {
+            $mail->to = ImapMailboxUtils::decodeMimeStr($mail->to, $serverEncoding);
+        }
+    }
+
     public static function getAttachmentId($params, $partStructure)
     {
         return $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);

@@ -357,15 +357,7 @@ class ImapMailbox
         $mails = imap_fetch_overview($this->getImapStream(), implode(',', $mailsIds), FT_UID);
         if (is_array($mails) && count($mails)) {
             foreach ($mails as &$mail) {
-                if (isset($mail->subject)) {
-                    $mail->subject = ImapMailboxUtils::decodeMimeStr($mail->subject, $this->serverEncoding);
-                }
-                if (isset($mail->from)) {
-                    $mail->from = ImapMailboxUtils::decodeMimeStr($mail->from, $this->serverEncoding);
-                }
-                if (isset($mail->to)) {
-                    $mail->to = ImapMailboxUtils::decodeMimeStr($mail->to, $this->serverEncoding);
-                }
+                ImapMailboxDetails::setMaildetail($mail, $serverEncoding);
             }
         }
 
@@ -499,7 +491,11 @@ class ImapMailbox
     private function getMessageContent($mailId, $head, &$mail)
     {
         $mailStructure = imap_fetchstructure($this->getImapStream(), $mailId, FT_UID);
+        $this->getMessageBodyContent($mailStructure, $head, $mail);
+    }
 
+    private function getMessageBodyContent($mailStructure, $head, &$mail)
+    {
         $errs = imap_errors();
         if ($errs === false) {
             if (empty($mailStructure->parts)) {
@@ -508,6 +504,20 @@ class ImapMailbox
                 foreach ($mailStructure->parts as $partNum => $partStructure) {
                     $this->initMailPart($mail, $partStructure, $partNum + 1);
                 }
+            }
+        }
+    }
+
+    private function getMailPart($partStructure, &$mail, &$partNum)
+    {
+        if (empty($partStructure->parts)) {
+            return;
+        }
+        foreach ($partStructure->parts as $subPartNum => $subPartStructure) {
+            if ($partStructure->type == 2 && $partStructure->subtype == 'RFC822') {
+                $this->initMailPart($mail, $subPartStructure, $partNum);
+            } else {
+                $this->initMailPart($mail, $subPartStructure, $partNum.'.'.($subPartNum + 1));
             }
         }
     }
@@ -540,7 +550,7 @@ class ImapMailbox
         $this->setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum);
     }
 
-    private function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum)
+    protected function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum)
     {
         // attachments
         $attachmentId = ImapMailboxDetails::getAttachmentId($params, $partStructure);
@@ -553,19 +563,6 @@ class ImapMailbox
         }
 
         $this->getMailPart($partStructure, $mail, $partNum);
-    }
-
-    private function getMailPart($partStructure, &$mail, &$partNum)
-    {
-        if (!empty($partStructure->parts)) {
-            foreach ($partStructure->parts as $subPartNum => $subPartStructure) {
-                if ($partStructure->type == 2 && $partStructure->subtype == 'RFC822') {
-                    $this->initMailPart($mail, $subPartStructure, $partNum);
-                } else {
-                    $this->initMailPart($mail, $subPartStructure, $partNum.'.'.($subPartNum + 1));
-                }
-            }
-        }
     }
 
     /**
