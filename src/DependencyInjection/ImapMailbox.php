@@ -546,11 +546,11 @@ class ImapMailbox
     private function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum)
     {
         // attachments
-        $attachmentId = $this->getAttachmentId($params, $partStructure);
+        $attachmentId = ImapMailboxUtils::getAttachmentId($params, $partStructure);
         if ($attachmentId) {
             $this->buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail);
         } elseif ($partStructure->type == 0 && $data) {
-            $this->getMailBody($partStructure, $mail, $data);
+            ImapMailboxUtils::getMailBody($partStructure, $mail, $data);
         } elseif ($partStructure->type == 2 && $data) {
             $mail->textPlain .= trim($data);
         }
@@ -571,20 +571,6 @@ class ImapMailbox
         }
     }
 
-    private function getMailBody($partStructure, &$mail, $data)
-    {
-        if (strtolower($partStructure->subtype) == 'plain') {
-            $mail->textPlain .= $data;
-        } else {
-            $mail->textHtml .= $data;
-        }
-    }
-
-    private function getAttachmentId($params, $partStructure)
-    {
-        return $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
-    }
-
     private function buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, &$mail)
     {
         if (empty($params['filename']) && empty($params['name'])) {
@@ -592,7 +578,7 @@ class ImapMailbox
         } else {
             $fileName = !empty($params['filename']) ? $params['filename'] : $params['name'];
             $fileName = ImapMailboxUtils::decodeMimeStr($fileName, $this->serverEncoding);
-            $fileName = $this->decodeRFC2231($fileName, $this->serverEncoding);
+            $fileName = ImapMailboxUtils::decodeRFC2231($fileName, $this->serverEncoding);
         }
         $attachment = new IncomingMailAttachment();
         $attachment->id = $attachmentId;
@@ -640,27 +626,6 @@ class ImapMailbox
 //    }
 //    return $return;
 //}
-
-    public function isUrlEncoded($string)
-    {
-        $hasInvalidChars = preg_match('#[^%a-zA-Z0-9\-_\.\+]#', $string);
-        $hasEscapedChars = preg_match('#%[a-zA-Z0-9]{2}#', $string);
-
-        return !$hasInvalidChars && $hasEscapedChars;
-    }
-
-    protected function decodeRFC2231($string, $charset = 'utf-8')
-    {
-        if (preg_match("/^(.*?)'.*?'(.*?)$/", $string, $matches)) {
-            $encoding = $matches[1];
-            $data = $matches[2];
-            if ($this->isUrlEncoded($data)) {
-                $string = iconv(strtoupper($encoding), $charset.'//IGNORE', urldecode($data));
-            }
-        }
-
-        return $string;
-    }
 
     public function __destruct()
     {

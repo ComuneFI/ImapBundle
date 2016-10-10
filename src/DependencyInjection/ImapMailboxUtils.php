@@ -84,6 +84,41 @@ class ImapMailboxUtils
         }
     }
 
+    public static function isUrlEncoded($string)
+    {
+        $hasInvalidChars = preg_match('#[^%a-zA-Z0-9\-_\.\+]#', $string);
+        $hasEscapedChars = preg_match('#%[a-zA-Z0-9]{2}#', $string);
+
+        return !$hasInvalidChars && $hasEscapedChars;
+    }
+
+    public static function getMailBody($partStructure, &$mail, $data)
+    {
+        if (strtolower($partStructure->subtype) == 'plain') {
+            $mail->textPlain .= $data;
+        } else {
+            $mail->textHtml .= $data;
+        }
+    }
+
+    public static function getAttachmentId($params, $partStructure)
+    {
+        return $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
+    }
+
+    public static function decodeRFC2231($string, $charset = 'utf-8')
+    {
+        if (preg_match("/^(.*?)'.*?'(.*?)$/", $string, $matches)) {
+            $encoding = $matches[1];
+            $data = $matches[2];
+            if (self::isUrlEncoded($data)) {
+                $string = iconv(strtoupper($encoding), $charset.'//IGNORE', urldecode($data));
+            }
+        }
+
+        return $string;
+    }
+
     public function setMessageEncoding(&$data, $serverEncoding)
     {
         $tipoencoding = mb_detect_encoding($data, 'auto', true);
