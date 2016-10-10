@@ -599,18 +599,20 @@ class ImapMailbox
     private function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum)
     {
         // attachments
-        $attachmentId = $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
+        $attachmentId = $this->getAttachmentId($params, $partStructure);
         if ($attachmentId) {
             $this->buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail);
         } elseif ($partStructure->type == 0 && $data) {
-            if (strtolower($partStructure->subtype) == 'plain') {
-                $mail->textPlain .= $data;
-            } else {
-                $mail->textHtml .= $data;
-            }
+            $this->getMailBody($partStructure, $mail, $data);
         } elseif ($partStructure->type == 2 && $data) {
             $mail->textPlain .= trim($data);
         }
+
+        $this->getMailPart($partStructure, $mail, $partNum);
+    }
+
+    private function getMailPart($partStructure, &$mail, &$partNum)
+    {
         if (!empty($partStructure->parts)) {
             foreach ($partStructure->parts as $subPartNum => $subPartStructure) {
                 if ($partStructure->type == 2 && $partStructure->subtype == 'RFC822') {
@@ -620,6 +622,20 @@ class ImapMailbox
                 }
             }
         }
+    }
+
+    private function getMailBody($partStructure, &$mail, $data)
+    {
+        if (strtolower($partStructure->subtype) == 'plain') {
+            $mail->textPlain .= $data;
+        } else {
+            $mail->textHtml .= $data;
+        }
+    }
+
+    private function getAttachmentId($params, $partStructure)
+    {
+        return $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
     }
 
     private function buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, &$mail)

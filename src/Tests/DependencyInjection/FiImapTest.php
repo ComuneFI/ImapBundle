@@ -19,7 +19,7 @@ class FiImapTest extends KernelTestCase
         return $this->container;
     }
 
-    public function testLdap()
+    public function testImap()
     {
         $indirizzomail = $this->getContainer()->getParameter('imapconnectionstring');
         $utentemail = $this->getContainer()->getParameter('imapusername');
@@ -62,8 +62,7 @@ class FiImapTest extends KernelTestCase
                 }
             }
             // assert that your calculator added the numbers correctly!
-             var_dump($arraymessaggi[66]);
-            exit;
+            /* var_dump($arraymessaggi[66]);exit; */
             $this->assertGreaterThanOrEqual(65, count($arraymessaggi));
         }
     }
