@@ -98,4 +98,17 @@ class ImapMailboxUtils
 
         return $newString;
     }
+
+    public static function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum, $serverEncoding)
+    {
+        // attachments
+        $attachmentId = ImapMailboxDetails::getAttachmentId($params, $partStructure);
+        if ($attachmentId) {
+            ImapMailboxDetails::buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail, $serverEncoding);
+        } elseif ($partStructure->type == 0 && $data) {
+            ImapMailboxDetails::getMailBody($partStructure, $mail, $data);
+        } elseif ($partStructure->type == 2 && $data) {
+            $mail->textPlain .= trim($data);
+        }
+    }
 }

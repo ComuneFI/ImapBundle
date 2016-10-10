@@ -413,21 +413,7 @@ class ImapMailbox
 
         ImapMailboxUtils::setMessageEncoding($data, $this->serverEncoding);
 
-        $this->setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum);
-    }
-
-    protected function setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum)
-    {
-        // attachments
-        $attachmentId = ImapMailboxDetails::getAttachmentId($params, $partStructure);
-        if ($attachmentId) {
-            ImapMailboxDetails::buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail, $this->serverEncoding);
-        } elseif ($partStructure->type == 0 && $data) {
-            ImapMailboxDetails::getMailBody($partStructure, $mail, $data);
-        } elseif ($partStructure->type == 2 && $data) {
-            $mail->textPlain .= trim($data);
-        }
-
+        ImapMailboxUtils::setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum, $this->serverEncoding);
         $this->getMailPart($partStructure, $mail, $partNum);
     }
 
