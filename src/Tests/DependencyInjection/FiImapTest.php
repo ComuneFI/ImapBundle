@@ -62,7 +62,8 @@ class FiImapTest extends KernelTestCase
                 }
             }
             // assert that your calculator added the numbers correctly!
-            /* var_dump($arraymessaggi[66]);exit; */
+             var_dump($arraymessaggi[66]);
+            exit;
             $this->assertGreaterThanOrEqual(65, count($arraymessaggi));
         }
     }

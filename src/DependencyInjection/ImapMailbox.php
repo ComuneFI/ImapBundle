@@ -360,13 +360,13 @@ class ImapMailbox
         if (is_array($mails) && count($mails)) {
             foreach ($mails as &$mail) {
                 if (isset($mail->subject)) {
-                    $mail->subject = $this->decodeMimeStr($mail->subject, $this->serverEncoding);
+                    $mail->subject = ImapMailboxUtils::decodeMimeStr($mail->subject, $this->serverEncoding);
                 }
                 if (isset($mail->from)) {
-                    $mail->from = $this->decodeMimeStr($mail->from, $this->serverEncoding);
+                    $mail->from = ImapMailboxUtils::decodeMimeStr($mail->from, $this->serverEncoding);
                 }
                 if (isset($mail->to)) {
-                    $mail->to = $this->decodeMimeStr($mail->to, $this->serverEncoding);
+                    $mail->to = ImapMailboxUtils::decodeMimeStr($mail->to, $this->serverEncoding);
                 }
             }
         }
@@ -483,46 +483,20 @@ class ImapMailbox
             $mail->textPlain = $errs;
         } else {
             $mail->id = $mailId;
-            $mail->date = $this->getMessageDate($head);
-            $mail->subject = $this->getMessageSubject($head);
-            $mail->fromName = $this->getMessageFromName($head);
-            $mail->fromAddress = $this->getMessageFromAddress($head);
-            $this->getMessageTo($head, $mail);
-            $this->getMessageCc($head, $mail);
-            $this->getMessageReplayTo($head, $mail);
+            $mailboxutil = new ImapMailboxUtils($this->serverEncoding);
+
+            $mail->date = $mailboxutil->getMessageDate($head);
+            $mail->subject = $mailboxutil->getMessageSubject($head);
+            $mail->fromName = $mailboxutil->getMessageFromName($head);
+            $mail->fromAddress = $mailboxutil->getMessageFromAddress($head);
+            $mailboxutil->getMessageTo($head, $mail);
+            $mailboxutil->getMessageCc($head, $mail);
+            $mailboxutil->getMessageReplayTo($head, $mail);
+
             $this->getMessageContent($mailId, $head, $mail);
         }
 
         return $mail;
-    }
-
-    private function getMessageDate($head)
-    {
-        return date('Y-m-d H:i:s', isset($head->date) ? strtotime($head->date) : time());
-    }
-
-    private function getMessageFromName($head)
-    {
-        return isset($head->from[0]->personal) ? $this->decodeMimeStr($head->from[0]->personal, $this->serverEncoding) : null;
-    }
-
-    private function getMessageFromAddress($head)
-    {
-        return strtolower($head->from[0]->mailbox.'@'.$head->from[0]->host);
-    }
-
-    private function getMessageSubject($head)
-    {
-        return isset($head->subject) ? $this->decodeMimeStr($head->subject, $this->serverEncoding) : null;
-    }
-
-    private function getMessageCc($head, &$mail)
-    {
-        if (isset($head->cc)) {
-            foreach ($head->cc as $cc) {
-                $mail->cc[strtolower($cc->mailbox.'@'.$cc->host)] = isset($cc->personal) ? $this->decodeMimeStr($cc->personal, $this->serverEncoding) : null;
-            }
-        }
     }
 
     private function getMessageContent($mailId, $head, &$mail)
@@ -537,31 +511,6 @@ class ImapMailbox
                 foreach ($mailStructure->parts as $partNum => $partStructure) {
                     $this->initMailPart($mail, $partStructure, $partNum + 1);
                 }
-            }
-        }
-    }
-
-    private function getMessageTo($head, &$mail)
-    {
-        if (isset($head->to)) {
-            $toStrings = array();
-            foreach ($head->to as $to) {
-                if (!empty($to->mailbox) && !empty($to->host)) {
-                    $toEmail = strtolower($to->mailbox.'@'.$to->host);
-                    $toName = isset($to->personal) ? $this->decodeMimeStr($to->personal, $this->serverEncoding) : null;
-                    $toStrings[] = $toName ? "$toName <$toEmail>" : $toEmail;
-                    $mail->to[$toEmail] = $toName;
-                }
-            }
-            $mail->toString = implode(', ', $toStrings);
-        }
-    }
-
-    private function getMessageReplayTo($head, &$mail)
-    {
-        if (isset($head->reply_to)) {
-            foreach ($head->reply_to as $replyTo) {
-                $mail->replyTo[strtolower($replyTo->mailbox.'@'.$replyTo->host)] = isset($replyTo->personal) ? $this->decodeMimeStr($replyTo->personal, $this->serverEncoding) : null;
             }
         }
     }
@@ -679,7 +628,7 @@ class ImapMailbox
             $fileName = $attachmentId.'.'.strtolower($partStructure->subtype);
         } else {
             $fileName = !empty($params['filename']) ? $params['filename'] : $params['name'];
-            $fileName = $this->decodeMimeStr($fileName, $this->serverEncoding);
+            $fileName = ImapMailboxUtils::decodeMimeStr($fileName, $this->serverEncoding);
             $fileName = $this->decodeRFC2231($fileName, $this->serverEncoding);
         }
         $attachment = new IncomingMailAttachment();
@@ -728,20 +677,6 @@ class ImapMailbox
 //    }
 //    return $return;
 //}
-
-    protected function decodeMimeStr($string, $charset = 'utf-8')
-    {
-        $newString = '';
-        $elements = imap_mime_header_decode($string);
-        for ($i = 0; $i < count($elements); ++$i) {
-            if ($elements[$i]->charset == 'default') {
-                $elements[$i]->charset = 'iso-8859-1';
-            }
-            $newString .= iconv(strtoupper($elements[$i]->charset), $charset.'//IGNORE', $elements[$i]->text);
-        }
-
-        return $newString;
-    }
 
     public function isUrlEncoded($string)
     {
