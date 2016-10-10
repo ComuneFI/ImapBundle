@@ -84,7 +84,7 @@ class ImapMailboxUtils
         }
     }
 
-    public static function setMessageEncoding(&$data)
+    public function setMessageEncoding(&$data, $serverEncoding)
     {
         $tipoencoding = mb_detect_encoding($data, 'auto', true);
         ini_set('mbstring.substitute_character', 'none');
@@ -111,7 +111,7 @@ class ImapMailboxUtils
             if ($isreallythatencodingtype === false) {
                 // che si fa?
             } else {
-                $tipoencodingout = $this->serverEncoding.'//IGNORE//TRANSLIT';
+                $tipoencodingout = $serverEncoding.'//IGNORE//TRANSLIT';
                 $convdata = @iconv($tipoencoding, $tipoencodingout, $data);
                 $data = $convdata;
             }

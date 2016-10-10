@@ -538,7 +538,7 @@ class ImapMailbox
         ImapMailboxUtils::setMessageParameters($params, $partStructure);
         $attachmentdata = $data;
 
-        ImapMailboxUtils::setMessageEncoding($data);
+        ImapMailboxUtils::setMessageEncoding($data, $this->serverEncoding);
 
         $this->setMessageAttachmensts($partStructure, $params, $data, $mail, $attachmentdata, $partNum);
     }
