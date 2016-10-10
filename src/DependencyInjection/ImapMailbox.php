@@ -102,7 +102,14 @@ class ImapMailbox
      */
     public function createMailbox()
     {
-        return imap_createmailbox(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), imap_utf7_encode($this->imapPath));
+        $stream = $this->getStram();
+
+        return imap_createmailbox($stream, imap_utf7_encode($this->imapPath));
+    }
+
+    public function getStram()
+    {
+        return ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions));
     }
 
     /**
@@ -115,7 +122,9 @@ class ImapMailbox
      */
     public function statusMailbox()
     {
-        return imap_status(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $this->imapPath, SA_ALL);
+        $stream = $this->getStram();
+
+        return imap_status($stream, $this->imapPath, SA_ALL);
     }
 
     /**
@@ -128,7 +137,8 @@ class ImapMailbox
      */
     public function getListingFolders()
     {
-        $folders = imap_list(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $this->imapPath, '*');
+        $stream = $this->getStram();
+        $folders = imap_list($stream, $this->imapPath, '*');
         foreach ($folders as $key => $folder) {
             $folder = str_replace($this->imapPath, '', imap_utf7_decode($folder));
             $folders[$key] = $folder;
@@ -173,7 +183,8 @@ class ImapMailbox
      */
     public function searchMailbox($criteria = 'ALL')
     {
-        $mailsIds = imap_search(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $criteria, SE_UID, $this->serverEncoding);
+        $stream = $this->getStram();
+        $mailsIds = imap_search($stream, $criteria, SE_UID, $this->serverEncoding);
 
         return $mailsIds ? $mailsIds : array();
     }
@@ -185,7 +196,9 @@ class ImapMailbox
      */
     public function saveMail($mailId, $filename = 'email.eml')
     {
-        return imap_savebody(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $filename, $mailId, '', FT_UID);
+        $stream = $this->getStram();
+
+        return imap_savebody($stream, $filename, $mailId, '', FT_UID);
     }
 
     /**
@@ -195,12 +208,16 @@ class ImapMailbox
      */
     public function deleteMail($mailId)
     {
-        return imap_delete(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, FT_UID);
+        $stream = $this->getStram();
+
+        return imap_delete($stream, $mailId, FT_UID);
     }
 
     public function moveMail($mailId, $mailBox)
     {
-        return imap_mail_move(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, $mailBox, CP_UID) && $this->expungeDeletedMails();
+        $stream = $this->getStram();
+
+        return imap_mail_move($stream, $mailId, $mailBox, CP_UID) && $this->expungeDeletedMails();
     }
 
     /**
@@ -210,7 +227,9 @@ class ImapMailbox
      */
     public function expungeDeletedMails()
     {
-        return imap_expunge(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)));
+        $stream = $this->getStram();
+
+        return imap_expunge($stream);
     }
 
     /**
@@ -283,7 +302,9 @@ class ImapMailbox
      */
     public function setFlag(array $mailsIds, $flag)
     {
-        return imap_setflag_full(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), implode(',', $mailsIds), $flag, ST_UID);
+        $stream = $this->getStram();
+
+        return imap_setflag_full($stream, implode(',', $mailsIds), $flag, ST_UID);
     }
 
     /**
@@ -296,7 +317,9 @@ class ImapMailbox
      */
     public function clearFlag(array $mailsIds, $flag)
     {
-        return imap_clearflag_full(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), implode(',', $mailsIds), $flag, ST_UID);
+        $stream = $this->getStram();
+
+        return imap_clearflag_full($stream, implode(',', $mailsIds), $flag, ST_UID);
     }
 
     /**
@@ -318,7 +341,9 @@ class ImapMailbox
      */
     public function sortMails($criteria = SORTARRIVAL, $reverse = true)
     {
-        return imap_sort(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $criteria, $reverse, SE_UID);
+        $stream = $this->getStram();
+
+        return imap_sort($stream, $criteria, $reverse, SE_UID);
     }
 
     /**
@@ -330,7 +355,8 @@ class ImapMailbox
      */
     public function getMail($mailId)
     {
-        $head = imap_rfc822_parse_headers(imap_fetchheader(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, FT_UID));
+        $stream = $this->getStram();
+        $head = imap_rfc822_parse_headers(imap_fetchheader($stream, $mailId, FT_UID));
         $errs = imap_errors();
         $mail = new IncomingMail();
         if ($errs) {
@@ -355,7 +381,8 @@ class ImapMailbox
 
     private function getMessageContent($mailId, $head, &$mail)
     {
-        $mailStructure = imap_fetchstructure(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, FT_UID);
+        $stream = $this->getStram();
+        $mailStructure = imap_fetchstructure($stream, $mailId, FT_UID);
         $this->getMessageBodyContent($mailStructure, $head, $mail);
     }
 
@@ -390,7 +417,8 @@ class ImapMailbox
 
     protected function initMailPart(IncomingMail $mail, $partStructure, $partNum)
     {
-        $data = $partNum ? imap_fetchbody(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mail->id, $partNum, FT_UID) : imap_body(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mail->id, FT_UID);
+        $stream = $this->getStram();
+        $data = $partNum ? imap_fetchbody($stream, $mail->id, $partNum, FT_UID) : imap_body($stream, $mail->id, FT_UID);
 
         switch ($partStructure->encoding) {
             case 1:

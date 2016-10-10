@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<project name="Fifree2 DemoBundle" default="build">
+<project name="Fifree2 ImapBundle" default="build">
+    <fileset id="php-files" dir="${basedir}">
+        <include name="**/*.php"/>
+        <exclude name="vendor/**"/>
+        <exclude name="build/**"/>
+        <exclude name="${basedir}/src/Tests/**"/>
+        <exclude name="${basedir}/src/Tests/app/AppKernel.php"/>
+    </fileset>
+    
     <target name="build"
             depends="prepare,composer-run-install,php-lint-ci,phpmd-ci,phpcs-ci,phpcpd-ci,php-security-checker,phpunit-ci"/>
 
@@ -107,6 +115,7 @@
         <exec executable="vendor/bin/phpcs" failonerror="true">
             <arg value="--standard=tools/phpcs/ruleset.xml"/>
             <arg value="--extensions=php"/>
+            <arg value="--ignore=${basedir}/src/Tests/app" />
             <arg path="src"/>
         </exec>
     </target>
@@ -118,6 +127,7 @@
             <arg value="--standard=tools/phpcs/ruleset.xml"/>
             <arg value="--warning-severity=0"/>
             <arg value="--extensions=php"/>
+            <arg value="--ignore=${basedir}/src/Tests/app" />
             <arg path="src"/>
         </exec>
     </target>

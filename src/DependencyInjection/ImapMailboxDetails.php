@@ -28,7 +28,8 @@ class ImapMailboxDetails
     {
         if (isset($head->cc)) {
             foreach ($head->cc as $cc) {
-                $mail->cc[strtolower($cc->mailbox.'@'.$cc->host)] = isset($cc->personal) ? ImapMailboxUtils::decodeMimeStr($cc->personal, $serverEncoding) : null;
+                $ccdetail = isset($cc->personal) ? ImapMailboxUtils::decodeMimeStr($cc->personal, $serverEncoding) : null;
+                $mail->cc[strtolower($cc->mailbox.'@'.$cc->host)] = $ccdetail;
             }
         }
     }
@@ -53,7 +54,8 @@ class ImapMailboxDetails
     {
         if (isset($head->reply_to)) {
             foreach ($head->reply_to as $replyTo) {
-                $mail->replyTo[strtolower($replyTo->mailbox.'@'.$replyTo->host)] = isset($replyTo->personal) ? ImapMailboxUtils::decodeMimeStr($replyTo->personal, $serverEncoding) : null;
+                $replaytodetail = isset($replyTo->personal) ? ImapMailboxUtils::decodeMimeStr($replyTo->personal, $serverEncoding) : null;
+                $mail->replyTo[strtolower($replyTo->mailbox.'@'.$replyTo->host)] = $replaytodetail;
             }
         }
     }
@@ -126,9 +128,9 @@ class ImapMailboxDetails
      *
      * @return array
      */
-    public function getMailsInfo(array $mailsIds)
+    public function getMailsInfo($stram, array $mailsIds)
     {
-        $mails = imap_fetch_overview(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), implode(',', $mailsIds), FT_UID);
+        $mails = imap_fetch_overview($stram, implode(',', $mailsIds), FT_UID);
         if (is_array($mails) && count($mails)) {
             foreach ($mails as &$mail) {
                 self::setMaildetail($mail, $this->serverEncoding);
@@ -153,9 +155,9 @@ class ImapMailboxDetails
      *
      * @return object Object with info | FALSE on failure
      */
-    public function getMailboxInfo()
+    public function getMailboxInfo($stream)
     {
-        return imap_mailboxmsginfo(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)));
+        return imap_mailboxmsginfo($stream);
     }
 
     /**
@@ -163,9 +165,9 @@ class ImapMailboxDetails
      *
      * @return int
      */
-    public function countMails()
+    public function countMails($stream)
     {
-        return imap_num_msg(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)));
+        return imap_num_msg($stream);
     }
 
     /**
@@ -173,9 +175,9 @@ class ImapMailboxDetails
      *
      * @return array - FALSE in the case of call failure
      */
-    public static function getQuota($imapPath, $username, $password, $imapopenoptions)
+    public static function getQuota($stream)
     {
-        return imap_get_quotaroot(ImapStreamUtils::getImapStream($imapPath, $username, $password, $imapopenoptions), 'INBOX');
+        return imap_get_quotaroot($stream, 'INBOX');
     }
 
     /**
