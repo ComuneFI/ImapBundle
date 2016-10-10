@@ -65,6 +65,59 @@ class ImapMailboxUtils
         }
     }
 
+    public static function setMessageParameters(&$params, $partStructure)
+    {
+        if (!empty($partStructure->parameters)) {
+            foreach ($partStructure->parameters as $param) {
+                $params[strtolower($param->attribute)] = $param->value;
+            }
+        }
+        if (!empty($partStructure->dparameters)) {
+            foreach ($partStructure->dparameters as $param) {
+                $paramName = strtolower(preg_match('~^(.*?)\*~', $param->attribute, $matches) ? $matches[1] : $param->attribute);
+                if (isset($params[$paramName])) {
+                    $params[$paramName] .= $param->value;
+                } else {
+                    $params[$paramName] = $param->value;
+                }
+            }
+        }
+    }
+
+    public static function setMessageEncoding(&$data)
+    {
+        $tipoencoding = mb_detect_encoding($data, 'auto', true);
+        ini_set('mbstring.substitute_character', 'none');
+        if (($tipoencoding == false) or ($tipoencoding == '') or (!(isset($tipoencoding)))) {
+            // Non si sa che encoding hanno i dati... tentiamo di impostargliene uno noi
+            $newdata = mb_convert_encoding($data, 'UTF-8');
+        } else {
+            if (mb_detect_encoding($data) != 'UTF-8') {
+                $newdata = mb_convert_encoding($data, 'UTF-8', $tipoencoding);
+            } else {
+                $newdata = $data;
+            }
+        }
+        $data = $newdata;
+
+        if (($tipoencoding == false) or ($tipoencoding == '') or (!(isset($tipoencoding)))) {
+            $tipoencoding = mb_detect_encoding($data, 'auto', true);
+        }
+
+        if (($tipoencoding == false) or ($tipoencoding == '') or (!(isset($tipoencoding)))) {
+            // Non si sa che encoding hanno i dati... che si fa?
+        } else {
+            $isreallythatencodingtype = mb_detect_encoding($data, $tipoencoding, true);
+            if ($isreallythatencodingtype === false) {
+                // che si fa?
+            } else {
+                $tipoencodingout = $this->serverEncoding.'//IGNORE//TRANSLIT';
+                $convdata = @iconv($tipoencoding, $tipoencodingout, $data);
+                $data = $convdata;
+            }
+        }
+    }
+
     public static function decodeMimeStr($string, $charset = 'utf-8')
     {
         $newString = '';
