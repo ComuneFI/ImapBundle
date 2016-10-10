@@ -545,7 +545,7 @@ class ImapMailbox
         // attachments
         $attachmentId = ImapMailboxDetails::getAttachmentId($params, $partStructure);
         if ($attachmentId) {
-            $this->buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail);
+            ImapMailboxDetails::buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, $mail, $this->serverEncoding);
         } elseif ($partStructure->type == 0 && $data) {
             ImapMailboxDetails::getMailBody($partStructure, $mail, $data);
         } elseif ($partStructure->type == 2 && $data) {
@@ -566,22 +566,6 @@ class ImapMailbox
                 }
             }
         }
-    }
-
-    private function buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, &$mail)
-    {
-        if (empty($params['filename']) && empty($params['name'])) {
-            $fileName = $attachmentId.'.'.strtolower($partStructure->subtype);
-        } else {
-            $fileName = !empty($params['filename']) ? $params['filename'] : $params['name'];
-            $fileName = ImapMailboxUtils::decodeMimeStr($fileName, $this->serverEncoding);
-            $fileName = ImapMailboxUtils::decodeRFC2231($fileName, $this->serverEncoding);
-        }
-        $attachment = new IncomingMailAttachment();
-        $attachment->id = $attachmentId;
-        $attachment->name = $fileName;
-        $attachment->contents = $attachmentdata;
-        $mail->addAttachment($attachment);
     }
 
     /**

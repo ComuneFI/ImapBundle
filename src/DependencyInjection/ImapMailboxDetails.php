@@ -71,4 +71,20 @@ class ImapMailboxDetails
     {
         return $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
     }
+
+    public static function buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, &$mail, $serverEncoding)
+    {
+        if (empty($params['filename']) && empty($params['name'])) {
+            $fileName = $attachmentId.'.'.strtolower($partStructure->subtype);
+        } else {
+            $fileName = !empty($params['filename']) ? $params['filename'] : $params['name'];
+            $fileName = ImapMailboxUtils::decodeMimeStr($fileName, $serverEncoding);
+            $fileName = ImapMailboxUtils::decodeRFC2231($fileName, $serverEncoding);
+        }
+        $attachment = new IncomingMailAttachment();
+        $attachment->id = $attachmentId;
+        $attachment->name = $fileName;
+        $attachment->contents = $attachmentdata;
+        $mail->addAttachment($attachment);
+    }
 }
