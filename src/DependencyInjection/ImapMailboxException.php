@@ -2,6 +2,6 @@
 
 namespace Fi\ImapBundle\DependencyInjection;
 
-class ImapMailboxException extends Exception
+class ImapMailboxException extends \Exception
 {
 }
