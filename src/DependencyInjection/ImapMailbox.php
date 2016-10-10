@@ -70,37 +70,9 @@ class ImapMailbox
      *
      * @return null|resource
      */
-    public function getImapStream($forceConnection = true)
-    {
-        static $imapStream;
-        if ($forceConnection) {
-            if ($imapStream && (!is_resource($imapStream) || !imap_ping($imapStream))) {
-                $this->disconnect();
-                $imapStream = null;
-            }
-            if (!$imapStream) {
-                $imapStream = $this->initImapStream();
-            }
-        }
-
-        return $imapStream;
-    }
-
-    protected function initImapStream()
-    {
-        $imapStream = imap_open($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions));
-//user=nomecasellaoffice365@comune.fi.it
-//$imapStream = imap_open('{outlook.office365.com:993/imap/ssl/authuser=d99999@comune.fi.it}', $this->login, $this->password, OP_READONLY);
-        if (!$imapStream) {
-            throw new ImapMailboxException('Connection error: '.imap_last_error());
-        }
-
-        return $imapStream;
-    }
-
     protected function disconnect()
     {
-        $imapStream = $this->getImapStream(false);
+        $imapStream = ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions), false);
         if ($imapStream && is_resource($imapStream)) {
             imap_close($imapStream, CL_EXPUNGE);
         }
@@ -120,7 +92,7 @@ class ImapMailbox
      */
     public function checkMailbox()
     {
-        return imap_check($this->getImapStream());
+        return imap_check(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)));
     }
 
     /**
@@ -130,7 +102,7 @@ class ImapMailbox
      */
     public function createMailbox()
     {
-        return imap_createmailbox($this->getImapStream(), imap_utf7_encode($this->imapPath));
+        return imap_createmailbox(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), imap_utf7_encode($this->imapPath));
     }
 
     /**
@@ -143,7 +115,7 @@ class ImapMailbox
      */
     public function statusMailbox()
     {
-        return imap_status($this->getImapStream(), $this->imapPath, SA_ALL);
+        return imap_status(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $this->imapPath, SA_ALL);
     }
 
     /**
@@ -156,7 +128,7 @@ class ImapMailbox
      */
     public function getListingFolders()
     {
-        $folders = imap_list($this->getImapStream(), $this->imapPath, '*');
+        $folders = imap_list(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $this->imapPath, '*');
         foreach ($folders as $key => $folder) {
             $folder = str_replace($this->imapPath, '', imap_utf7_decode($folder));
             $folders[$key] = $folder;
@@ -201,7 +173,7 @@ class ImapMailbox
      */
     public function searchMailbox($criteria = 'ALL')
     {
-        $mailsIds = imap_search($this->getImapStream(), $criteria, SE_UID, $this->serverEncoding);
+        $mailsIds = imap_search(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $criteria, SE_UID, $this->serverEncoding);
 
         return $mailsIds ? $mailsIds : array();
     }
@@ -213,7 +185,7 @@ class ImapMailbox
      */
     public function saveMail($mailId, $filename = 'email.eml')
     {
-        return imap_savebody($this->getImapStream(), $filename, $mailId, '', FT_UID);
+        return imap_savebody(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $filename, $mailId, '', FT_UID);
     }
 
     /**
@@ -223,12 +195,12 @@ class ImapMailbox
      */
     public function deleteMail($mailId)
     {
-        return imap_delete($this->getImapStream(), $mailId, FT_UID);
+        return imap_delete(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, FT_UID);
     }
 
     public function moveMail($mailId, $mailBox)
     {
-        return imap_mail_move($this->getImapStream(), $mailId, $mailBox, CP_UID) && $this->expungeDeletedMails();
+        return imap_mail_move(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, $mailBox, CP_UID) && $this->expungeDeletedMails();
     }
 
     /**
@@ -238,7 +210,7 @@ class ImapMailbox
      */
     public function expungeDeletedMails()
     {
-        return imap_expunge($this->getImapStream());
+        return imap_expunge(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)));
     }
 
     /**
@@ -311,7 +283,7 @@ class ImapMailbox
      */
     public function setFlag(array $mailsIds, $flag)
     {
-        return imap_setflag_full($this->getImapStream(), implode(',', $mailsIds), $flag, ST_UID);
+        return imap_setflag_full(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), implode(',', $mailsIds), $flag, ST_UID);
     }
 
     /**
@@ -324,7 +296,7 @@ class ImapMailbox
      */
     public function clearFlag(array $mailsIds, $flag)
     {
-        return imap_clearflag_full($this->getImapStream(), implode(',', $mailsIds), $flag, ST_UID);
+        return imap_clearflag_full(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), implode(',', $mailsIds), $flag, ST_UID);
     }
 
     /**
@@ -354,10 +326,10 @@ class ImapMailbox
      */
     public function getMailsInfo(array $mailsIds)
     {
-        $mails = imap_fetch_overview($this->getImapStream(), implode(',', $mailsIds), FT_UID);
+        $mails = imap_fetch_overview(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), implode(',', $mailsIds), FT_UID);
         if (is_array($mails) && count($mails)) {
             foreach ($mails as &$mail) {
-                ImapMailboxDetails::setMaildetail($mail, $serverEncoding);
+                ImapMailboxDetails::setMaildetail($mail, $this->serverEncoding);
             }
         }
 
@@ -381,7 +353,7 @@ class ImapMailbox
      */
     public function getMailboxInfo()
     {
-        return imap_mailboxmsginfo($this->getImapStream());
+        return imap_mailboxmsginfo(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)));
     }
 
     /**
@@ -403,7 +375,7 @@ class ImapMailbox
      */
     public function sortMails($criteria = SORTARRIVAL, $reverse = true)
     {
-        return imap_sort($this->getImapStream(), $criteria, $reverse, SE_UID);
+        return imap_sort(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $criteria, $reverse, SE_UID);
     }
 
     /**
@@ -413,7 +385,7 @@ class ImapMailbox
      */
     public function countMails()
     {
-        return imap_num_msg($this->getImapStream());
+        return imap_num_msg(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)));
     }
 
     /**
@@ -423,7 +395,7 @@ class ImapMailbox
      */
     protected function getQuota()
     {
-        return imap_get_quotaroot($this->getImapStream(), 'INBOX');
+        return imap_get_quotaroot(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), 'INBOX');
     }
 
     /**
@@ -465,7 +437,7 @@ class ImapMailbox
      */
     public function getMail($mailId)
     {
-        $head = imap_rfc822_parse_headers(imap_fetchheader($this->getImapStream(), $mailId, FT_UID));
+        $head = imap_rfc822_parse_headers(imap_fetchheader(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, FT_UID));
         $errs = imap_errors();
         $mail = new IncomingMail();
         if ($errs) {
@@ -490,7 +462,7 @@ class ImapMailbox
 
     private function getMessageContent($mailId, $head, &$mail)
     {
-        $mailStructure = imap_fetchstructure($this->getImapStream(), $mailId, FT_UID);
+        $mailStructure = imap_fetchstructure(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mailId, FT_UID);
         $this->getMessageBodyContent($mailStructure, $head, $mail);
     }
 
@@ -524,7 +496,7 @@ class ImapMailbox
 
     protected function initMailPart(IncomingMail $mail, $partStructure, $partNum)
     {
-        $data = $partNum ? imap_fetchbody($this->getImapStream(), $mail->id, $partNum, FT_UID) : imap_body($this->getImapStream(), $mail->id, FT_UID);
+        $data = $partNum ? imap_fetchbody(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mail->id, $partNum, FT_UID) : imap_body(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), $mail->id, FT_UID);
 
         switch ($partStructure->encoding) {
             case 1:
