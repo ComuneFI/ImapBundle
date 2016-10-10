@@ -84,7 +84,9 @@ class ImapMailboxDetails
 
     public static function getAttachmentId($params, $partStructure)
     {
-        return $partStructure->ifid ? trim($partStructure->id, ' <>') : (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
+        $detauil = (isset($params['filename']) || isset($params['name']) ? mt_rand().mt_rand() : null);
+
+        return $partStructure->ifid ? trim($partStructure->id, ' <>') : $detauil;
     }
 
     public static function buildMessageAttachment($attachmentId, $attachmentdata, $params, $partStructure, &$mail, $serverEncoding)

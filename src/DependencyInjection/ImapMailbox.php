@@ -153,7 +153,9 @@ class ImapMailbox
      * Searches appear to be case insensitive. This list of criteria is from a reading of the UW
      * c-client source code and may be incomplete or inaccurate (see also RFC2060, section 6.4.4).
      *
-     * @param string $criteria String, delimited by spaces, in which the following keywords are allowed. Any multi-word arguments (e.g. FROM "joey smith") must be quoted. Results will match all criteria entries.
+     * @param string $criteria String, delimited by spaces, in which the following keywords are allowed.
+     *                         Any multi-word arguments (e.g. FROM "joey smith") must be quoted. Results will match all criteria entries.
+     *
      *                         ALL - return all mails matching the rest of the criteria
      *                         ANSWERED - match mails with the \\ANSWERED flag set
      *                         BCC "string" - match mails with "string" in the Bcc: field
