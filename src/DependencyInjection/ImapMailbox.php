@@ -362,13 +362,14 @@ class ImapMailbox
     private function getMessageBodyContent($mailStructure, $head, &$mail)
     {
         $errs = imap_errors();
-        if ($errs === false) {
-            if (empty($mailStructure->parts)) {
-                $this->initMailPart($mail, $mailStructure, 0);
-            } else {
-                foreach ($mailStructure->parts as $partNum => $partStructure) {
-                    $this->initMailPart($mail, $partStructure, $partNum + 1);
-                }
+        if ($errs === true) {
+            return;
+        }
+        if (empty($mailStructure->parts)) {
+            $this->initMailPart($mail, $mailStructure, 0);
+        } else {
+            foreach ($mailStructure->parts as $partNum => $partStructure) {
+                $this->initMailPart($mail, $partStructure, $partNum + 1);
             }
         }
     }

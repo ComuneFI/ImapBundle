@@ -173,9 +173,9 @@ class ImapMailboxDetails
      *
      * @return array - FALSE in the case of call failure
      */
-    protected function getQuota()
+    public static function getQuota($imapPath, $username, $password, $imapopenoptions)
     {
-        return imap_get_quotaroot(ImapStreamUtils::getImapStream($this->imapPath, $this->login, $this->password, constant($this->imapopenoptions)), 'INBOX');
+        return imap_get_quotaroot(ImapStreamUtils::getImapStream($imapPath, $username, $password, $imapopenoptions), 'INBOX');
     }
 
     /**
@@ -183,7 +183,7 @@ class ImapMailboxDetails
      *
      * @return int - FALSE in the case of call failure
      */
-    public function getQuotaLimit()
+    public static function getQuotaLimit()
     {
         $quota = $this->getQuota();
         if (is_array($quota)) {
@@ -198,7 +198,7 @@ class ImapMailboxDetails
      *
      * @return int - FALSE in the case of call failure
      */
-    public function getQuotaUsage()
+    public static function getQuotaUsage()
     {
         $quota = $this->getQuota();
         if (is_array($quota)) {
